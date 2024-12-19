@@ -23,7 +23,7 @@ class RabbitMQChannel(MessageQueueChannel):
         self.channel.basic_publish(
             exchange=exchange,
             routing_key=routing_key,
-            body=body,
+            body=body.encode(),
         )
 
 
