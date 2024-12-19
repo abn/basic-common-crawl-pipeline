@@ -34,9 +34,19 @@ class IndexReader(ABC):
     def __iter__(self):
         pass
 
+    @abstractmethod
+    def __len__(self):
+        pass
+
 
 class CSVIndexReader(IndexReader):
     def __init__(self, filename: str) -> None:
+        self._line_count = 0
+
+        with open(filename) as f:
+            for _ in f:
+                self._line_count += 1
+
         self.file = open(filename)  # noqa: SIM115
         self.reader = csv.reader(self.file, delimiter="\t")
 
@@ -48,6 +58,9 @@ class CSVIndexReader(IndexReader):
 
     def __del__(self) -> None:
         self.file.close()
+
+    def __len__(self) -> int:
+        return self._line_count
 
 
 def test_can_read_index(tmp_path):

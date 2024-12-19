@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from prometheus_client import Counter
+from prometheus_client import Gauge
 from prometheus_client import start_http_server
 
 from commoncrawl import BASE_URL
@@ -22,6 +23,9 @@ from rabbitmq import RabbitMQChannel
 BATCH_SIZE = 50
 
 batch_counter = Counter("batcher_batches", "Number of published batches")
+processed_gauge = Gauge(
+    "batcher_processed", "Percentage of the cluster.idx file processed"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -52,6 +56,8 @@ def process_index(
     batch_size: int,
 ) -> None:
     found_urls = []
+    total_lines = len(index)
+    processed_lines = 0
     for cdx_chunk in index:
         data = downloader.download_and_unzip(
             cdx_chunk[1], int(cdx_chunk[2]), int(cdx_chunk[3])
@@ -76,6 +82,9 @@ def process_index(
             if len(found_urls) >= batch_size:
                 publish_batch(channel, found_urls)
                 found_urls = []
+
+        processed_lines += 1
+        processed_gauge.set((processed_lines / total_lines) * 100)
 
     if len(found_urls) > 0:
         publish_batch(channel, found_urls)
