@@ -26,6 +26,16 @@ s3_client = Minio(
     secure=False,
 )
 batch_counter = Counter("worker_batches", "Number of consumed batches")
+download_size_counter = Counter(
+    "worker_download_size", "Total downloaded size in bytes"
+)
+processed_documents_counter = Counter(
+    "worker_processed_documents", "Number of processed documents"
+)
+filtered_documents_counter = Counter(
+    "worker_filtered_documents", "Number of filtered documents"
+)
+
 
 # let's make sure bucket exists once
 if not s3_client.bucket_exists(S3_BUCKET_NAME):
@@ -41,6 +51,8 @@ def process_batch(downloader: Downloader, ch, method, _properties, body):
             int(item["metadata"]["offset"]),
             int(item["metadata"]["length"]),
         )
+        download_size_counter.inc(len(data))
+
         for record in WARCIterator(io.BytesIO(data)):
             if record.rec_type == "response":
                 _text = trafilatura.extract(record.content_stream().read())
@@ -50,6 +62,7 @@ def process_batch(downloader: Downloader, ch, method, _properties, body):
                     print(  # noqa: T201
                         f"Skipping document {item["metadata"]["filename"]} due to character limits"
                     )
+                    filtered_documents_counter.inc()
                     break
 
                 # TODO: process text
@@ -60,6 +73,9 @@ def process_batch(downloader: Downloader, ch, method, _properties, body):
                     data=io.BytesIO(_text.encode("utf-8")),
                     length=len(_text.encode("utf-8")),
                 )
+
+                processed_documents_counter.inc()
+
     batch_counter.inc()
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
