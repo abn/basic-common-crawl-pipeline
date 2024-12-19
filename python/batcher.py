@@ -26,6 +26,7 @@ batch_counter = Counter("batcher_batches", "Number of published batches")
 processed_gauge = Gauge(
     "batcher_processed", "Percentage of the cluster.idx file processed"
 )
+filtered_urls_counter = Counter("batcher_filtered_urls", "Number of filtered URLs")
 
 
 def parse_args() -> argparse.Namespace:
@@ -79,6 +80,9 @@ def process_index(
                         "metadata": metadata,
                     }
                 )
+            else:
+                filtered_urls_counter.inc()
+
             if len(found_urls) >= batch_size:
                 publish_batch(channel, found_urls)
                 found_urls = []
