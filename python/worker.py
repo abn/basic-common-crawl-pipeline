@@ -1,8 +1,10 @@
 import io
 import json
+import os
 
 import trafilatura
 
+from minio import Minio
 from prometheus_client import Counter
 from prometheus_client import start_http_server
 from warcio.archiveiterator import WARCIterator
@@ -14,7 +16,20 @@ from rabbitmq import QUEUE_NAME
 from rabbitmq import rabbitmq_channel
 
 
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME", "worker")
+
+# using minio client here because boto3 is just unnecessary here
+s3_client = Minio(
+    endpoint=os.environ.get("AWS_S3_HOST", "127.0.0.1:9000"),
+    access_key=os.environ.get("AWS_ACCESS_KEY_ID"),
+    secret_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+    secure=False,
+)
 batch_counter = Counter("worker_batches", "Number of consumed batches")
+
+# let's make sure bucket exists once
+if not s3_client.bucket_exists(S3_BUCKET_NAME):
+    s3_client.make_bucket(S3_BUCKET_NAME)
 
 
 def process_batch(downloader: Downloader, ch, method, _properties, body):
@@ -30,6 +45,14 @@ def process_batch(downloader: Downloader, ch, method, _properties, body):
             if record.rec_type == "response":
                 _text = trafilatura.extract(record.content_stream().read())
                 # TODO: process text
+                if _text:
+                    # this probably needs more error handling
+                    s3_client.put_object(
+                        bucket_name=S3_BUCKET_NAME,
+                        object_name=f"{item['metadata']['filename']}.extracted.txt",
+                        data=io.BytesIO(_text.encode("utf-8")),
+                        length=len(_text.encode("utf-8")),
+                    )
     batch_counter.inc()
     ch.basic_ack(delivery_tag=method.delivery_tag)
 

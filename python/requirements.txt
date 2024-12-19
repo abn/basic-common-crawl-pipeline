@@ -3,3 +3,4 @@ pika
 prometheus-client
 requests
 warcio
+minio
