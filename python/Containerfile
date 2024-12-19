@@ -1,0 +1,12 @@
+FROM registry.fedoraproject.org/fedora:41
+
+RUN dnf -y install python3.13 python3.13-pip && dnf clean all
+RUN mkdir -p /opt/app
+
+WORKDIR /opt/app
+
+COPY requirements.txt /opt/app/requirements.txt
+
+RUN python3.13 -m pip install --no-cache-dir --disable-pip-version-check --root-user-action ignore -r requirements.txt
+
+COPY ./*.py .
