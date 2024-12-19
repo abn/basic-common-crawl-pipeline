@@ -1,6 +1,6 @@
 trafilatura
 pika
 prometheus-client
-requests
+httpx
 warcio
 minio
