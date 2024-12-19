@@ -1,7 +1,9 @@
-from abc import ABC, abstractmethod
 import csv
 import gzip
-from typing import Generator, List, Optional
+
+from abc import ABC
+from abc import abstractmethod
+
 import requests
 
 
@@ -35,7 +37,7 @@ class IndexReader(ABC):
 
 class CSVIndexReader(IndexReader):
     def __init__(self, filename: str) -> None:
-        self.file = open(filename, "r")
+        self.file = open(filename)  # noqa: SIM115
         self.reader = csv.reader(self.file, delimiter="\t")
 
     def __iter__(self):

@@ -1,5 +1,8 @@
-from abc import ABC, abstractmethod
 import os
+
+from abc import ABC
+from abc import abstractmethod
+
 import pika
 
 
@@ -25,7 +28,6 @@ class RabbitMQChannel(MessageQueueChannel):
 
 
 def rabbitmq_channel() -> pika.adapters.blocking_connection.BlockingChannel:
-
     connection = pika.BlockingConnection(
         pika.URLParameters(os.environ["RABBITMQ_CONNECTION_STRING"])
     )

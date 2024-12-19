@@ -1,18 +1,22 @@
-from abc import ABC, abstractmethod
-import json
 import argparse
-from typing import Any, Mapping, Sequence
-from prometheus_client import Counter, start_http_server
+import json
 
-from commoncrawl import (
-    BASE_URL,
-    CRAWL_PATH,
-    CCDownloader,
-    CSVIndexReader,
-    Downloader,
-    IndexReader,
-)
-from rabbitmq import QUEUE_NAME, MessageQueueChannel, RabbitMQChannel
+from collections.abc import Mapping
+from collections.abc import Sequence
+from typing import Any
+
+from prometheus_client import Counter
+from prometheus_client import start_http_server
+
+from commoncrawl import BASE_URL
+from commoncrawl import CRAWL_PATH
+from commoncrawl import CCDownloader
+from commoncrawl import CSVIndexReader
+from commoncrawl import Downloader
+from commoncrawl import IndexReader
+from rabbitmq import QUEUE_NAME
+from rabbitmq import MessageQueueChannel
+from rabbitmq import RabbitMQChannel
 
 
 BATCH_SIZE = 50
@@ -32,7 +36,7 @@ def publish_batch(
     channel: MessageQueueChannel,
     batch: Sequence[Mapping[str, Any]],
 ) -> None:
-    print("Pushing batch of size", len(batch))
+    print("Pushing batch of size", len(batch))  # noqa: T201
     channel.basic_publish(
         exchange="",
         routing_key=QUEUE_NAME,

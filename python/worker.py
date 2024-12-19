@@ -1,19 +1,24 @@
 import io
 import json
-from prometheus_client import start_http_server
-import trafilatura
-from warcio.archiveiterator import WARCIterator
-from prometheus_client import Counter
 
-from commoncrawl import BASE_URL, CCDownloader, Downloader
-from rabbitmq import QUEUE_NAME, rabbitmq_channel
+import trafilatura
+
+from prometheus_client import Counter
+from prometheus_client import start_http_server
+from warcio.archiveiterator import WARCIterator
+
+from commoncrawl import BASE_URL
+from commoncrawl import CCDownloader
+from commoncrawl import Downloader
+from rabbitmq import QUEUE_NAME
+from rabbitmq import rabbitmq_channel
 
 
 batch_counter = Counter("worker_batches", "Number of consumed batches")
 
 
 def process_batch(downloader: Downloader, ch, method, _properties, body):
-    print("Received batch of size", len(body))
+    print("Received batch of size", len(body))  # noqa: T201
     batch = json.loads(body)
     for item in batch:
         data = downloader.download_and_unzip(
