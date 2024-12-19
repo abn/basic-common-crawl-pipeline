@@ -44,15 +44,22 @@ def process_batch(downloader: Downloader, ch, method, _properties, body):
         for record in WARCIterator(io.BytesIO(data)):
             if record.rec_type == "response":
                 _text = trafilatura.extract(record.content_stream().read())
-                # TODO: process text
-                if _text:
-                    # this probably needs more error handling
-                    s3_client.put_object(
-                        bucket_name=S3_BUCKET_NAME,
-                        object_name=f"{item['metadata']['filename']}.extracted.txt",
-                        data=io.BytesIO(_text.encode("utf-8")),
-                        length=len(_text.encode("utf-8")),
+
+                if not _text or 500 > len(_text) > 1000000:
+                    # this probably needs refinement as this is very loose on what a "character" is
+                    print(  # noqa: T201
+                        f"Skipping document {item["metadata"]["filename"]} due to character limits"
                     )
+                    break
+
+                # TODO: process text
+                # this probably needs more error handling
+                s3_client.put_object(
+                    bucket_name=S3_BUCKET_NAME,
+                    object_name=f"{item['metadata']['filename']}.extracted.txt",
+                    data=io.BytesIO(_text.encode("utf-8")),
+                    length=len(_text.encode("utf-8")),
+                )
     batch_counter.inc()
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
