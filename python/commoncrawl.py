@@ -1,5 +1,6 @@
 import csv
 import gzip
+import time
 
 from abc import ABC
 from abc import abstractmethod
@@ -22,11 +23,25 @@ class CCDownloader(Downloader):
         self.base_url = base_url
 
     def download_and_unzip(self, url: str, start: int, length: int) -> bytes:
-        headers = {"Range": f"bytes={start}-{start+length-1}"}
-        response = httpx.get(f"{self.base_url}/{url}", headers=headers, timeout=None)
-        response.raise_for_status()
-        buffer = response.content
-        return gzip.decompress(buffer)
+        backoff = 1
+
+        while (attempts := 0) < 3:
+            headers = {"Range": f"bytes={start}-{start+length-1}"}
+            response = httpx.get(
+                f"{self.base_url}/{url}", headers=headers, timeout=None
+            )
+
+            if response.status_code == 503:
+                attempts += 1
+                backoff = min(backoff * 1.5, 15)
+                time.sleep(backoff)
+                continue
+
+            response.raise_for_status()
+            buffer = response.content
+            return gzip.decompress(buffer)
+
+        raise RuntimeError(f"Request for download failed {url} {start} {length}")
 
 
 class IndexReader(ABC):
